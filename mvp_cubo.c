@@ -53,6 +53,13 @@ typedef struct MapEntity
     float size;       // escala del billboard
 } MapEntity;
 
+typedef struct CharacterEntity
+{
+    Texture2D *texture; // textura del personaje
+    Vector3 position;   // posición en el mundo
+    float size;         // escala del billboard
+} CharacterEntity;
+
 int main(void)
 {
     const int screenWidth = 1200;
@@ -90,6 +97,12 @@ int main(void)
         UnloadImage(atlas);
     }
 
+    // Cargar solo los 4 sprites que me enviaste al principio (colocar en assets/)
+    Texture2D knightTex = LoadTexture("assets/knight.png");
+    Texture2D farmerTex = LoadTexture("assets/farmer.png");
+    Texture2D archerTex = LoadTexture("assets/archer.png");
+    Texture2D merchantTex = LoadTexture("assets/merchant.png");
+
     Camera camera = {0};
     camera.position = (Vector3){13.0f, 11.0f, 13.0f}; // vista isométrica para ver todo el mapa
     camera.target = (Vector3){0.0f, 0.0f, 0.0f};
@@ -120,6 +133,15 @@ int main(void)
         {5, {4.0f, 0.0f, 6.0f}, 3.0f}};
     const int entityCount = sizeof(entities) / sizeof(entities[0]);
 
+    // Personajes colocados en el grid (posiciones elegidas para no solaparse con entidades existentes)
+    CharacterEntity characters[] = {
+        {&knightTex, {-6.0f, 0.0f, 0.0f}, 2.5f},  // nuevo - lado izquierdo
+        {&farmerTex, {6.0f, 0.0f, 0.5f}, 2.5f},   // nuevo - lado derecho
+        {&archerTex, {0.0f, 0.0f, -6.0f}, 2.5f},  // nuevo - al fondo
+        {&merchantTex, {7.0f, 0.0f, -3.5f}, 2.5f} // nuevo - esquina derecha-atrás
+    };
+    const int characterCount = sizeof(characters) / sizeof(characters[0]);
+
     SetTargetFPS(60);
 
     while (!WindowShouldClose())
@@ -128,19 +150,30 @@ int main(void)
         ClearBackground(LIGHTGRAY);
 
         BeginMode3D(camera);
-        DrawGrid(20, 1.0f);
+        // Ajuste de espaciado para evitar solapamientos
+        const float spacing = 1.8f; // multiplica posiciones para separar entidades
+        DrawGrid(20, spacing);
 
-        // Dibujar el mapa usando las entidades
+        // Dibujar el mapa usando las entidades (posiciones escaladas por spacing)
         for (int i = 0; i < entityCount; i++)
         {
             MapEntity e = entities[i];
-            DrawBillboard(camera, models[e.modelIndex].texture, e.position, e.size, WHITE);
+            Vector3 pos = {e.position.x * spacing, e.position.y, e.position.z * spacing};
+            DrawBillboard(camera, models[e.modelIndex].texture, pos, e.size, WHITE);
+        }
+
+        // Dibujar personajes (posiciones escaladas por spacing)
+        for (int i = 0; i < characterCount; i++)
+        {
+            CharacterEntity c = characters[i];
+            Vector3 pos = {c.position.x * spacing, c.position.y, c.position.z * spacing};
+            DrawBillboard(camera, *c.texture, pos, c.size, WHITE);
         }
 
         EndMode3D();
 
         DrawText("MVP - Mapa isometrico armado con los assets actuales", 20, 20, 20, DARKGRAY);
-        DrawText("Cada sprite se reutiliza como entidad en el mapa (granero, arbustos, rocas, campos)", 20, 45, 18, GRAY);
+        DrawText("Sprites usados como entidades del mapa (granero, arbustos, rocas, campos, unidades)", 20, 45, 18, GRAY);
 
         EndDrawing();
     }
@@ -149,6 +182,11 @@ int main(void)
     {
         UnloadTexture(models[m].texture);
     }
+
+    UnloadTexture(knightTex);
+    UnloadTexture(farmerTex);
+    UnloadTexture(archerTex);
+    UnloadTexture(merchantTex);
 
     CloseWindow();
     return 0;
